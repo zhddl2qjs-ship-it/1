@@ -9,8 +9,16 @@
 - Reuse is based on content hashes of Swift/C/header/plist/launcher files, target architecture, compiler paths and versions, and SDK path/version. A signed bundle is verified before reuse.
 - Build output is recorded in `SeatWatcher_build.log`. A failed build preserves the previous application bundle.
 - Runtime screen capture uses ScreenCaptureKit rather than the obsolete `CGDisplayCreateImage` API.
-- The user reports macOS 26.6.1. This package has not been compiled or run on that Mac or any macOS host during preparation. No macOS build-success claim is made.
+- The user's macOS 26.6.1 crash report establishes that 2.2.0 built and launched, then trapped during SCStreamConfiguration background-color copying. Version 2.2.1 has not been compiled or run on a macOS host during preparation; the native fix remains unverified here.
 - Native C tests exercise the same detector linked into the app. They do not validate Swift/CoreGraphics bridging, capture permissions, screen geometry, UI, click timing, or ticket reservation behavior.
+
+## 2.2.1 capture initialization correction
+
+The temporary `CGColor` previously assigned to `SCStreamConfiguration.backgroundColor` could be released before SCStream copied the configuration. The SDK declares this property as `assign CGColorRef`, rather than an owning reference. The configuration now keeps ScreenCaptureKit's default clear background; sRGB continues to use its global constant.
+
+The shared production configuration factory is also used by `tests/ScreenCaptureConfigurationTests.swift`. `Launch.command` builds and runs this test with `-O` before building the application. The test copies configurations after the factory's allocation scope has ended, with `MallocScribble=1` only for the test process. No screen-recording permission is required. Run it separately on a Mac with `bash tests/run-capture-config-tests.sh`. Non-macOS hosts return skip status 77. Both test files are included in the launcher's build hash.
+
+The native test has been added but cannot execute on the Linux preparation host. Shell syntax, Swift syntax parsing and simulated launcher failure/rebuild paths do not replace that native check.
 
 ## Mac verification before using automatic clicks
 

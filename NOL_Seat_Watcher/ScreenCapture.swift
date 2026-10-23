@@ -132,23 +132,9 @@ final class ScreenCaptureSession: NSObject, SCStreamOutput, SCStreamDelegate {
             return
         }
 
-        let configuration = SCStreamConfiguration()
-        configuration.width = outputWidth
-        configuration.height = outputHeight
-        configuration.minimumFrameInterval = CMTime(value: 1,
-                                                    timescale: CMTimeScale(framesPerSecond))
-        configuration.queueDepth = 3
-        configuration.pixelFormat = kCVPixelFormatType_32BGRA
-        configuration.colorSpaceName = CGColorSpace.sRGB
-        configuration.showsCursor = false
-        configuration.capturesAudio = false
-        configuration.scalesToFit = true
-        configuration.backgroundColor = CGColor(red: 1, green: 1, blue: 1, alpha: 1)
-        if let rect = sourceRect { configuration.sourceRect = rect }
-        if #available(macOS 14.0, *) {
-            configuration.preservesAspectRatio = false
-            configuration.streamName = "좌석 감시 영역"
-        }
+        let configuration = ScreenCaptureConfiguration.make(
+            width: outputWidth, height: outputHeight,
+            framesPerSecond: framesPerSecond, sourceRect: sourceRect)
 
         let filter = SCContentFilter(display: display, excludingWindows: [])
         let stream = SCStream(filter: filter, configuration: configuration, delegate: self)

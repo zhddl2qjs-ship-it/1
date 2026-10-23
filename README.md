@@ -1,4 +1,4 @@
-# Seat Watcher 2.2 — 맥북용 수정본
+# Seat Watcher 2.2.1 — 맥북용 수정본
 
 자동 갱신되는 예매 화면에서 지정한 영역의 파랑·초록·보라색 원형 좌석을 감지합니다. 테스트 모드로 위치를 확인하거나 좌석을 한 번 클릭하고 멈춥니다.
 
@@ -17,6 +17,16 @@ bash Launch.command
 Apple 명령줄 도구 설치 안내가 나오면 설치 후 다시 실행하세요. 첫 빌드 후 `SeatWatcher.app`이 같은 폴더에 생성됩니다. 화면 기록 권한이 필요하며, 자동 클릭에는 손쉬운 사용 권한도 필요합니다.
 
 ## 먼저 확인하기
+
+2.2.1은 화면 촬영을 누를 때 `SCStreamConfiguration`의 배경색 복사 과정에서 충돌하던 경로를 수정합니다. 일시적인 색상 객체를 지정하지 않고 프레임워크 기본 배경색을 사용합니다. 첫 빌드 때 실제 Mac의 ScreenCaptureKit에서 최적화된 설정 복사 검사를 먼저 실행하며, 실패하면 기존 앱을 교체하지 않습니다. 수정본의 Mac 실행은 제작 환경에서 재검증하지 못했습니다.
+
+기존 설치를 업데이트하려면 SeatWatcher를 종료한 뒤 아래를 실행하세요.
+
+```sh
+cd ~/Downloads/SeatWatcher-v2.2 &&
+git pull --ff-only origin codex/seat-watcher-v2.2 &&
+bash NOL_Seat_Watcher/Launch.command
+```
 
 `NOL_Seat_Watcher/테스트화면.html`을 브라우저에서 열면 실제 예매 없이 좌석 표시·확대·재등장·클릭을 확인할 수 있습니다. 앱은 테스트 모드가 기본입니다. 이미 보이는 좌석으로 테스트하려면 '시작할 때 있는 좌석 제외'를 끄세요.
 

@@ -72,8 +72,8 @@ if ! command -v xcrun >/dev/null 2>&1 || ! xcrun --find swiftc >/dev/null 2>&1 |
   fail '설치 완료 후 다시 실행해 주세요.'
 fi
 
-for required in main.swift PreviewView.swift ScreenCapture.swift SeatTracking.swift SeatDetector.c SeatDetector.h SeatTracker.c SeatTracker.h SeatBridge.h Info.plist; do
-  [ -f "$required" ] || fail "필수 파일이 없습니다: $required — ZIP 전체를 다시 압축 해제하세요."
+for required in main.swift PreviewView.swift ScreenCapture.swift ScreenCaptureConfiguration.swift SeatTracking.swift SeatDetector.c SeatDetector.h SeatTracker.c SeatTracker.h SeatBridge.h Info.plist tests/ScreenCaptureConfigurationTests.swift tests/run-capture-config-tests.sh; do
+  [ -f "$required" ] || fail "필수 파일이 없습니다: $required — 전체 소스를 다시 받거나 git pull로 업데이트하세요."
 done
 
 NATIVE_ARCH="$(uname -m)"
@@ -92,11 +92,12 @@ TARGET_TRIPLE="$NATIVE_ARCH-apple-macos13.0"
 SWIFT_SOURCES=( ./*.swift )
 C_SOURCES=( ./*.c )
 C_HEADERS=( ./*.h )
+CAPTURE_TESTS=( tests/ScreenCaptureConfigurationTests.swift tests/run-capture-config-tests.sh )
 
 BUILD_HASH="$({
-  printf '%s\n' 'SeatWatcher-v2.2;clang-O3-c11;swift-O-swift5;adhoc-sign' \
+  printf '%s\n' 'SeatWatcher-v2.2.1;clang-O3-c11;swift-O-swift5;adhoc-sign' \
     "$TARGET_TRIPLE" "$SDK_PATH" "$SDK_VERSION" "$SWIFTC_PATH" "$SWIFT_VERSION" "$CLANG_PATH" "$CLANG_VERSION"
-  shasum -a 256 -- "${SWIFT_SOURCES[@]}" "${C_SOURCES[@]}" "${C_HEADERS[@]}" Info.plist Launch.command
+  shasum -a 256 -- "${SWIFT_SOURCES[@]}" "${C_SOURCES[@]}" "${C_HEADERS[@]}" "${CAPTURE_TESTS[@]}" Info.plist Launch.command
 } | shasum -a 256 | awk '{print $1}')"
 
 if [ -x "$APP_PATH/Contents/MacOS/SeatWatcher" ] &&
@@ -121,7 +122,7 @@ mkdir -p "$STAGED_APP/Contents/MacOS" "$STAGED_APP/Contents/Resources" "$BUILD_D
 cp Info.plist "$STAGED_APP/Contents/Info.plist"
 printf '%s\n' "$BUILD_HASH" > "$STAGED_APP/Contents/Resources/build-id"
 
-printf '%s\n' 'SeatWatcher v2.2를 최적화 빌드합니다. 처음에는 수 분 걸릴 수 있습니다.'
+printf '%s\n' 'SeatWatcher v2.2.1을 검사하고 최적화 빌드합니다. 처음에는 수 분 걸릴 수 있습니다.'
 printf 'Mac: %s · %s · SDK %s\n' "$MACOS_VERSION" "$NATIVE_ARCH" "$SDK_VERSION"
 printf '빌드 기록: %s\n' "$LOG_PATH"
 
@@ -129,14 +130,16 @@ build_app() {
   local source object
   local objects=()
   printf '%s\n' "$SWIFT_VERSION"
-  printf '\n%s\n' '1/3 색상·좌석 탐지 엔진 컴파일'
+  printf '\n%s\n' '1/4 화면 캡처 설정 복사 검사'
+  bash "$PACKAGE_DIR/tests/run-capture-config-tests.sh" || return $?
+  printf '\n%s\n' '2/4 색상·좌석 탐지 엔진 컴파일'
   for source in "${C_SOURCES[@]}"; do
     object="$BUILD_DIR/$(basename "${source%.c}").o"
     "$CLANG_PATH" -target "$TARGET_TRIPLE" -isysroot "$SDK_PATH" \
       -std=c11 -O3 -Wall -Wextra -c "$source" -o "$object" || return $?
     objects+=( "$object" )
   done
-  printf '\n%s\n' '2/3 macOS 앱 컴파일 및 연결'
+  printf '\n%s\n' '3/4 macOS 앱 컴파일 및 연결'
   "$SWIFTC_PATH" -target "$TARGET_TRIPLE" -sdk "$SDK_PATH" \
     -swift-version 5 -O -module-name SeatWatcher \
     -module-cache-path "$BUILD_DIR/module-cache" \
@@ -145,7 +148,7 @@ build_app() {
     -framework ScreenCaptureKit -framework CoreMedia -framework CoreVideo \
     "${SWIFT_SOURCES[@]}" "${objects[@]}" \
     -o "$STAGED_APP/Contents/MacOS/SeatWatcher" || return $?
-  printf '\n%s\n' '3/3 로컬 앱 서명 확인'
+  printf '\n%s\n' '4/4 로컬 앱 서명 확인'
   codesign --force --sign - --timestamp=none \
     --identifier local.example.seatcolorwatcher "$STAGED_APP" || return $?
   codesign --verify --strict "$STAGED_APP" || return $?

@@ -122,7 +122,7 @@ final class AppController: NSObject, NSApplicationDelegate {
     private func buildWindow() {
         window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 980, height: 730),
                           styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
-        window.title = "Seat Watcher 2.2 · 좌석 변화 감지"
+        window.title = "Seat Watcher 2.2.1 · 좌석 변화 감지"
         window.center(); window.isReleasedWhenClosed = false
         guard let host = window.contentView else { return }
         host.addSubview(label("좌석 변화 감지 · 한 번 클릭", x: 24, y: 685, width: 920, height: 28, size: 21))
