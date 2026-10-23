@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seat Watcher 좌석 감지 테스트</title>
+<style>
+body{font:16px -apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;color:#222;margin:24px auto;max-width:1000px;padding:0 20px}
+h1{font-size:25px}p{line-height:1.6}button,select{font:inherit;padding:9px 13px;margin:4px;cursor:pointer}
+.controls{padding:15px;background:white;border:1px solid #ccc;border-radius:10px}
+#arena{margin-top:22px;padding:25px;background:#fff;border:1px solid #aaa;min-height:340px;display:grid;grid-template-columns:repeat(3,1fr);gap:45px;justify-items:center;align-items:center}
+.cell{min-height:110px;min-width:120px;display:flex;align-items:center;justify-content:center}
+.seat{box-sizing:border-box;padding:0;margin:0;width:23px;height:23px;border:2px solid #aaa;border-radius:50%;background:#f0f0f0;color:#444;font-size:10px;line-height:1}
+.seat.available.blue{border-color:rgb(83,176,249)}.seat.available.green{border-color:rgb(79,166,52)}.seat.available.purple{border-color:rgb(121,105,230)}
+.seat:focus{outline:none}.seat:focus-visible{outline:2px dashed #333;outline-offset:4px}#result{font-weight:600;min-height:28px}small{color:#555}
+</style>
+<h1>Seat Watcher 테스트용 좌석 화면</h1>
+<p>실제 예매와 연결되지 않은 연습 화면입니다. 브라우저에서 이 파일을 열고 아래 흰 좌석 영역만 감시하세요.
+<strong>‘5초 뒤 좌석 표시’를 누른 뒤 앱으로 돌아가 감시 시작</strong>을 누르면 새 좌석 감지를 확인할 수 있습니다.</p>
+<div class="controls">
+<label>색상 <select id="color"><option value="blue">파랑</option><option value="green">초록</option><option value="purple">보라</option></select></label>
+<label>크기 <select id="diameter"><option value="23">23px</option><option value="51">51px</option><option value="101">101px</option><option value="151">151px</option></select></label>
+<label>테두리 <select id="thickness"><option value="2">2px</option><option value="4">4px</option></select></label><br>
+<button id="delayed">5초 뒤 좌석 표시</button><button id="immediate">지금 표시</button><button id="reappear">같은 좌석 재등장 테스트</button><button id="reset">모두 회색으로</button>
+<p id="result" aria-live="polite">아래 좌석은 현재 회색입니다. 파랑·초록·보라를 각각 확인하세요.</p>
+</div>
+<div id="arena" aria-label="이 흰 영역만 드래그하여 선택하세요">
+<div class="cell"><button class="seat" data-index="1" aria-label="위쪽 좌석 1">1</button></div>
+<div class="cell"><button class="seat" data-index="2" aria-label="위쪽 좌석 2">2</button></div>
+<div class="cell"><button class="seat" data-index="3" aria-label="위쪽 좌석 3">3</button></div>
+<div class="cell"><button class="seat" data-index="4" aria-label="아래쪽 좌석 4">4</button></div>
+<div class="cell"><button class="seat" data-index="5" aria-label="아래쪽 좌석 5">5</button></div>
+<div class="cell"><button class="seat" data-index="6" aria-label="아래쪽 좌석 6">6</button></div>
+</div>
+<p><small>좌석 주변의 여백까지 포함해 영역을 선택하세요. 크기를 변경하면 앱에서 화면 촬영과 영역 선택을 다시 하세요.
+처음부터 색상이 있는 좌석으로 테스트하려면 앱의 ‘시작할 때 있는 좌석 제외’를 끄세요.
+자동 클릭을 시험하면 아래 좌석을 클릭했을 때 결과가 표시됩니다.</small></p>
+<script>
+const seats=[...document.querySelectorAll('.seat')];
+const status=document.querySelector('#result');
+let pending=null, target=0;
+function cancel(){if(pending!==null)clearTimeout(pending);pending=null;}
+function clearSeats(){seats.forEach(s=>s.className='seat');}
+function resize(){const d=document.querySelector('#diameter').value,t=document.querySelector('#thickness').value;seats.forEach(s=>{s.style.width=d+'px';s.style.height=d+'px';s.style.borderWidth=t+'px';});}
+function show(){cancel();clearSeats();seats[target].className='seat available '+document.querySelector('#color').value;status.textContent=(target+1)+'번 좌석이 나타났습니다. 감지 위치 또는 클릭 결과를 확인하세요.';}
+document.querySelector('#delayed').onclick=()=>{cancel();clearSeats();target=(target+1)%seats.length;status.textContent='5초 뒤 '+(target+1)+'번 좌석이 나타납니다. 앱에서 감시를 시작하세요.';pending=setTimeout(show,5000);};
+document.querySelector('#immediate').onclick=()=>{target=(target+1)%seats.length;show();};
+document.querySelector('#reappear').onclick=()=>{show();status.textContent='지금 감시를 시작하세요. 이 좌석이 5초 뒤 사라지고, 1초 후 다시 나타납니다.';pending=setTimeout(()=>{clearSeats();status.textContent='좌석이 사라졌습니다. 1초 뒤 다시 나타납니다.';pending=setTimeout(show,1000);},5000);};
+document.querySelector('#reset').onclick=()=>{cancel();clearSeats();status.textContent='모두 회색으로 바꿨습니다.';};
+document.querySelector('#diameter').onchange=resize;document.querySelector('#thickness').onchange=resize;
+seats.forEach((s,i)=>s.onclick=()=>{status.textContent=(i+1)+'번 '+(s.classList.contains('available')?'사용 가능한':'회색')+' 좌석에 클릭이 도착했습니다.';});
+resize();
+</script>
+</html>
