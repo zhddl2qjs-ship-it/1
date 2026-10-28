@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>예매 버튼 DOM 상태 감지 연습</title>
+  <style>
+    :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; color: #24283b; background: #f5f6fb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 38px 20px; }
+    main { max-width: 840px; margin: auto; }
+    h1 { margin: 0 0 12px; font-size: 29px; letter-spacing: -.04em; }
+    .intro, .help { color: #687086; font-size: 14px; line-height: 1.8; }
+    .intro { margin: 0 0 23px; }
+    section { padding: 25px; margin: 18px 0; border: 1px solid #e2e5f0; border-radius: 20px; background: #fff; }
+    .label { color: #757c91; font-size: 13px; margin: 0 0 14px; }
+    #buttonSlot { width: 100%; height: 112px; }
+    #buttonSlot > button { display: block; width: 100%; height: 112px; margin: 0; border: 0; border-radius: 24px; padding: 16px 20px; background-color: #e5e8f0; color: #626c83; font: inherit; font-size: clamp(18px, 3vw, 27px); font-weight: 750; line-height: 1.4; cursor: pointer; opacity: 1; -webkit-text-fill-color: currentColor; }
+    #buttonSlot > button:disabled { cursor: default; }
+    #buttonSlot > button.demo-active { background-color: #474dff; color: #fff; }
+    #buttonSlot > button.demo-smooth { transition: background-color 600ms linear, color 600ms linear; }
+    .stats { display: grid; grid-template-columns: 1.15fr .65fr 1fr; gap: 18px; margin-top: 23px; padding-top: 20px; border-top: 1px solid #edf0f5; }
+    .stats span { display: block; color: #7d8599; font-size: 12px; margin-bottom: 7px; }
+    .stats strong { font-size: 15px; line-height: 1.7; font-variant-numeric: tabular-nums; }
+    #count { color: #474dff; }
+    .controls label { display: block; color: #626c83; font-size: 13px; line-height: 1.7; }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+    select, .controls button { font: inherit; font-size: 14px; border-radius: 10px; padding: 11px 14px; }
+    select { width: 100%; border: 1px solid #dce1ec; background: #fff; color: #30374a; }
+    .controls button { border: 0; font-weight: 650; cursor: pointer; }
+    #startTimer { background: #30364d; color: #fff; }
+    #resetDemo { background: #edf0f7; color: #536078; }
+    .controls button:disabled, select:disabled { opacity: .5; cursor: default; }
+    .option { margin-top: 14px; }
+    .option input { accent-color: #474dff; vertical-align: middle; }
+    #scenarioNote { margin: 11px 0 0; color: #7d8498; font-size: 12px; line-height: 1.8; }
+    .help { padding: 0 5px; }
+    .help ol { padding-left: 22px; }
+    .small { color: #858da0; font-size: 12px; line-height: 1.8; }
+    details { font-size: 12px; color: #6c758a; line-height: 1.8; }
+    summary { cursor: pointer; }
+    #events { padding-left: 22px; margin-bottom: 0; font-variant-numeric: tabular-nums; }
+    :focus-visible { outline: 3px solid #a3a6ff; outline-offset: 3px; }
+    @media (max-width: 600px) { body { padding: 24px 14px; } section { padding: 20px; } h1 { font-size: 25px; } .stats { grid-template-columns: 1fr; gap: 12px; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>버튼 DOM 상태 감지 연습</h1>
+  <p class="intro">확장프로그램에서 <strong>활성 상태 변화(DOM)</strong>를 선택하고, 아래의 비활성 버튼을 지정하세요.<br>5초 뒤 버튼을 활성화합니다. 실제 예매나 네트워크 요청은 없습니다.</p>
+
+  <section aria-label="연습용 예매 버튼">
+    <p class="label">이 버튼을 확장프로그램의 ‘버튼 선택’으로 지정하세요.</p>
+    <div id="buttonSlot"></div>
+    <div class="stats">
+      <div><span>버튼 상태</span><strong id="state" role="status">대기 중 · disabled 있음</strong></div>
+      <div><span>실제 클릭 이벤트</span><strong id="count">0회</strong></div>
+      <div><span>활성 상태 변경 → 첫 클릭 수신</span><strong id="elapsed">—</strong></div>
+    </div>
+  </section>
+
+  <section class="controls" aria-label="DOM 상태 전환 설정">
+    <label for="scenario">연습할 동작</label>
+    <div class="row">
+      <select id="scenario">
+        <option value="same">같은 버튼의 disabled 해제</option>
+        <option value="unchanged">색·문구를 그대로 두고 disabled만 해제</option>
+        <option value="replace">새 ‘예매하기’ 버튼으로 교체 · 클래스와 문구도 변경</option>
+        <option value="rerender">비활성 버튼을 다시 그린 뒤 1초 후 활성화</option>
+        <option value="attributes">여러 속성을 함께 변경 · 한 번만 클릭되는지 확인</option>
+      </select>
+    </div>
+    <div class="row">
+      <button id="startTimer" type="button">5초 타이머 시작</button>
+      <button id="resetDemo" type="button">초기화</button>
+    </div>
+    <label class="option"><input id="smooth" type="checkbox"> 색상을 0.6초 동안 서서히 바꾸기 · DOM 활성화는 즉시</label>
+    <p id="scenarioNote"></p>
+  </section>
+
+  <div class="help">
+    <ol>
+      <li>확장프로그램을 열고 감지 기준을 <strong>활성 상태 변화(DOM)</strong>로 선택합니다.</li>
+      <li><strong>버튼 선택</strong>으로 위의 대기 버튼을 지정한 다음 <strong>감시 시작</strong>을 누릅니다.</li>
+      <li>이 페이지의 <strong>5초 타이머 시작</strong>을 누릅니다. 활성화 뒤 클릭 횟수가 <strong>1회</strong>가 되는지 확인합니다.</li>
+      <li>다른 동작을 연습할 때는 확장 감시를 중지하고, 초기화한 뒤 버튼을 다시 지정합니다.</li>
+    </ol>
+    <p class="small">파일로 연 페이지에서 확장 패널이 열리지 않으면 chrome://extensions → 해당 확장의 세부정보 → ‘파일 URL에 대한 액세스 허용’을 켜세요.<br>측정값은 이 연습 페이지에서 활성 상태를 바꾸는 시각부터 클릭 이벤트를 받는 시각까지입니다. 실제 예매 사이트의 서버 응답이나 예매 성공 시간을 측정한 값은 아닙니다.</p>
+  </div>
+
+  <section>
+    <details><summary>연습 동작 기록</summary><ol id="events"></ol></details>
+  </section>
+</main>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const pending = new Set();
+  let counter = 0;
+  let running = false;
+  let activatedAt = null;
+  let clickCount = 0;
+  const notes = {
+    same: '대기 중인 동일한 button 요소에서 disabled를 해제하고 문구·색을 바꿉니다.',
+    unchanged: '배경색, 문구, 클래스는 그대로입니다. disabled 속성 해제만으로 클릭하는지 확인합니다.',
+    replace: '같은 자리에 새로운 button을 넣습니다. ID는 없고 클래스와 문구도 기존 버튼과 다릅니다.',
+    rerender: '5초 뒤 disabled인 새 요소로 바꾸고, 1초를 더 기다린 후 활성화합니다. 요소 교체만으로 클릭하면 안 됩니다.',
+    attributes: '활성화 때 disabled·aria-disabled·class·data-state·문구가 함께 바뀌고, 이후 속성이 몇 번 더 바뀝니다.'
+  };
+  function log(text) {
+    const li = document.createElement('li');
+    li.textContent = text;
+    $('events').appendChild(li);
+    while ($('events').children.length > 12) $('events').firstElementChild.remove();
+  }
+  function later(fn, ms) {
+    const token = setTimeout(() => { pending.delete(token); fn(); }, ms);
+    pending.add(token);
+    return token;
+  }
+  function cancelTimers() {
+    pending.forEach(clearTimeout);
+    pending.clear();
+    clearInterval(counter);
+    counter = 0;
+  }
+  function makeButton() {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.disabled = true;
+    button.className = '_button_4ncv0_1 _primary_2p3w6_7 _disabled_2p3w6_34';
+    const span = document.createElement('span');
+    span.className = '_content_2p3w6_38';
+    span.textContent = '10/28 20:00 팬클럽 선예매';
+    button.appendChild(span);
+    return button;
+  }
+  function setControlsLocked(locked) {
+    running = locked;
+    $('scenario').disabled = locked;
+    $('smooth').disabled = locked;
+    $('startTimer').disabled = locked;
+  }
+  function reset() {
+    cancelTimers();
+    activatedAt = null;
+    clickCount = 0;
+    $('buttonSlot').replaceChildren(makeButton());
+    $('state').textContent = '대기 중 · disabled 있음';
+    $('count').textContent = '0회';
+    $('elapsed').textContent = '—';
+    $('startTimer').textContent = '5초 타이머 시작';
+    $('scenarioNote').textContent = notes[$('scenario').value];
+    $('events').replaceChildren();
+    setControlsLocked(false);
+  }
+  function enableButton(button, kind, smooth) {
+    if (!button.isConnected) return;
+    if (kind !== 'unchanged') {
+      button.textContent = '예매하기';
+      if (smooth) {
+        button.classList.add('demo-smooth');
+        // 교체된 요소도 대기색에서 출발하도록 스타일 계산을 먼저 확정한다.
+        void button.offsetWidth;
+      }
+    }
+    activatedAt = performance.now();
+    button.disabled = false;
+    if (kind !== 'unchanged') {
+      button.classList.remove('_disabled_2p3w6_34');
+      button.classList.add('demo-active');
+    }
+    if (kind === 'attributes') {
+      button.setAttribute('aria-disabled', 'false');
+      button.dataset.state = 'open';
+      for (const delay of [10, 30, 80]) later(() => {
+        if (button.isConnected) button.dataset.update = String(delay);
+      }, delay);
+    }
+    $('state').textContent = kind === 'unchanged' ? 'disabled 해제 · 색과 문구 동일' : 'disabled 해제 · 클릭 가능';
+    $('startTimer').textContent = '활성화 완료';
+    log('클릭 가능 상태로 변경했습니다. 색상 완성 여부는 기다리지 않습니다.');
+  }
+  function begin() {
+    if (running) return;
+    const kind = $('scenario').value;
+    const smooth = $('smooth').checked;
+    const endAt = performance.now() + 5000;
+    setControlsLocked(true);
+    $('state').textContent = '5초 대기 중';
+    $('startTimer').textContent = '5초 남음';
+    log('5초 타이머를 시작했습니다.');
+    counter = setInterval(() => {
+      $('startTimer').textContent = Math.max(0, Math.ceil((endAt - performance.now()) / 1000)) + '초 남음';
+    }, 100);
+    later(() => {
+      clearInterval(counter); counter = 0;
+      let button = $('buttonSlot').firstElementChild;
+      if (kind === 'replace') {
+        const next = document.createElement('button');
+        next.type = 'button';
+        next.disabled = true;
+        next.className = 'joint-button-rectangle joint-button-rectangle--variant_filled_primary joint-button-rectangle--size_xlarge joint-button-rectangle--weight_bold w_100%';
+        next.textContent = '예매하기';
+        $('buttonSlot').replaceChildren(next);
+        button = next;
+        log('새 클래스·문구를 가진 버튼으로 교체했습니다.');
+      } else if (kind === 'rerender') {
+        button = makeButton();
+        $('buttonSlot').replaceChildren(button);
+        $('state').textContent = '요소만 교체됨 · 아직 disabled';
+        $('startTimer').textContent = '활성화까지 1초 더 대기';
+        log('비활성 새 요소로만 교체했습니다. 아직 클릭 가능하지 않습니다.');
+        later(() => enableButton(button, kind, smooth), 1000);
+        return;
+      }
+      enableButton(button, kind, smooth);
+    }, 5000);
+  }
+  $('buttonSlot').addEventListener('click', event => {
+    const button = event.target.closest('button');
+    if (!button || button.parentElement !== $('buttonSlot') || button.disabled) return;
+    clickCount += 1;
+    $('count').textContent = clickCount + '회';
+    if (clickCount === 1 && activatedAt !== null) $('elapsed').textContent = (performance.now() - activatedAt).toFixed(2) + ' ms';
+    $('state').textContent = clickCount === 1 ? '첫 클릭 이벤트 수신' : '추가 클릭 이벤트 발생';
+    log('클릭 이벤트 ' + clickCount + '회 수신' + (event.isTrusted ? ' · 사용자 입력' : ' · 프로그램 이벤트'));
+  });
+  $('startTimer').addEventListener('click', begin);
+  $('resetDemo').addEventListener('click', reset);
+  $('scenario').addEventListener('change', reset);
+  window.addEventListener('pagehide', cancelTimers);
+  reset();
+})();
+</script>
+</body>
+</html>

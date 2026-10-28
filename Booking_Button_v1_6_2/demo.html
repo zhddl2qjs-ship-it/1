@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>예매 버튼 색상 감지 연습</title>
+  <style>
+    :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; color: #282b3b; background: #f5f6fb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 42px 22px; }
+    main { max-width: 820px; margin: auto; }
+    h1 { margin: 0 0 12px; font-size: 30px; letter-spacing: -.04em; }
+    .intro { margin: 0 0 24px; color: #666d81; line-height: 1.8; }
+    section { padding: 26px; margin: 18px 0; border: 1px solid #e4e7f0; border-radius: 22px; background: white; }
+    .label { font-size: 13px; color: #777d91; margin: 0 0 18px; }
+    #bookingButton { display: block; width: 100%; min-height: 112px; border: 0; border-radius: 27px; background-color: var(--waiting-color, rgb(206,232,245)); color: #747d91; font: 700 30px/1.4 inherit; font-size: 30px; font-weight: 700; cursor: default; opacity: 1; -webkit-text-fill-color: currentColor; }
+    #bookingButton.open { background-color: var(--active-color); color: var(--active-text); cursor: pointer; }
+    #bookingButton.smooth { transition: background-color 300ms linear, color 300ms linear; }
+    .stats { display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 16px; margin-top: 25px; padding-top: 22px; border-top: 1px solid #edf0f6; }
+    .stats span { display: block; font-size: 12px; color: #83899d; margin-bottom: 9px; }
+    .stats strong { display: block; font-size: 15px; font-variant-numeric: tabular-nums; }
+    #count { color: #494dff; }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    select, .controls button { font: inherit; font-size: 14px; padding: 12px 15px; border-radius: 11px; }
+    select { flex: 1; min-width: 180px; border: 1px solid #dce0eb; background: white; color: #32384b; }
+    .controls button { border: 0; font-weight: 650; cursor: pointer; }
+    #startTimer { background: #30364d; color: white; }
+    #resetDemo { background: #edf0f7; color: #535d73; }
+    button:disabled { cursor: default; }
+    .controls button:disabled, select:disabled { opacity: .5; }
+    .option { display: block; margin-top: 14px; font-size: 13px; color: #60697d; }
+    .option input { accent-color: #494dff; }
+    .help { padding: 0 5px; font-size: 14px; line-height: 1.9; color: #626a80; }
+    ol { padding-left: 22px; }
+    .small { font-size: 12px; color: #8a90a0; line-height: 1.8; }
+    :focus-visible { outline: 3px solid #a3a6ff; outline-offset: 3px; }
+    @media (max-width: 560px) { body { padding: 26px 15px; } section { padding: 21px; } h1 { font-size: 25px; } #bookingButton { font-size: 23px; } .stats { grid-template-columns: 1fr; gap: 14px; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>버튼 색상 감지 연습</h1>
+  <p class="intro">대기 버튼이 선택한 색으로 바뀌면 확장프로그램이 한 번 클릭하는지 확인하세요.<br>기본값은 제보된 회청색(206, 232, 245) → 남색(22, 42, 120)입니다. 실제 예매를 진행하지 않습니다.</p>
+  <section aria-label="연습용 예매 버튼">
+    <p class="label">5초 뒤 색상이 바뀌는 연습 버튼</p>
+    <button id="bookingButton" type="button" disabled>예매 시작 전</button>
+    <div class="stats">
+      <div><span>버튼 상태</span><strong id="state" role="status">대기 중</strong></div>
+      <div><span>실제 클릭 이벤트</span><strong id="count">0회</strong></div>
+      <div><span>색상 변경 시작 → 첫 클릭</span><strong id="elapsed">—</strong></div>
+    </div>
+  </section>
+  <section class="controls" aria-label="색상과 타이머 설정">
+    <label for="waitingChoice" class="label" style="display:block;margin-bottom:10px">감시를 시작할 때의 대기색</label>
+    <div class="row" style="margin-bottom:18px">
+      <select id="waitingChoice">
+        <option value="pale">연한 회청색 · rgb(206, 232, 245)</option>
+        <option value="gray">회색 · rgb(243, 244, 248)</option>
+      </select>
+    </div>
+    <label for="colorChoice" class="label" style="display:block;margin-bottom:10px">활성화되었을 때의 색상</label>
+    <div class="row">
+      <select id="colorChoice">
+        <option value="navy">남색 · rgb(22, 42, 120)</option>
+        <option value="blue">파랑</option>
+        <option value="purple">보라</option>
+        <option value="red">빨강</option>
+        <option value="green">초록</option>
+        <option value="orange">주황</option>
+        <option value="pink">분홍</option>
+        <option value="cyan">청록</option>
+        <option value="yellow">노랑</option>
+      </select>
+      <button id="startTimer" type="button">5초 타이머 시작</button>
+      <button id="resetDemo" type="button">초기화</button>
+    </div>
+    <label class="option"><input id="smooth" type="checkbox"> 색상을 0.3초 동안 서서히 바꾸기</label>
+    <label class="option"><input id="delayEnabled" type="checkbox"> 색상 변경 시작 1초 후 클릭 가능하게 하기</label>
+  </section>
+  <div class="help">
+    <ol>
+      <li>확장프로그램 아이콘 → <strong>이 페이지에서 열기</strong>를 누르세요.</li>
+      <li><strong>버튼 선택</strong>으로 대기 중인 연습 버튼을 지정하고 <strong>감시 시작</strong>을 누르세요.</li>
+      <li>이 화면의 <strong>5초 타이머 시작</strong>을 누르고 클릭 횟수가 <strong>1회</strong>가 되는지 확인하세요.</li>
+    </ol>
+    <p class="small">파일로 연 화면에서 패널이 열리지 않으면 chrome://extensions → 확장프로그램 세부정보 → ‘파일 URL에 대한 액세스 허용’을 켜세요.<br>다시 연습할 때는 확장프로그램 감시를 중지하고 초기화한 뒤 버튼을 다시 선택하세요. 측정 시간은 이 연습 화면에서의 값이며 실제 예매 사이트의 반응 시간을 보장하지 않습니다. ‘1초 후 클릭 가능’ 옵션을 켜면 표시되는 시간에 그 1초도 포함됩니다.</p>
+  </div>
+</main>
+<script>
+(() => {
+  'use strict';
+  const ui = Object.fromEntries(['bookingButton', 'state', 'count', 'elapsed', 'waitingChoice', 'colorChoice', 'startTimer', 'resetDemo', 'smooth', 'delayEnabled'].map(id => [id, document.getElementById(id)]));
+  const colors = { navy: ['rgb(22,42,120)', '#fff'], blue: ['#474dff', '#fff'], purple: ['#9333ea', '#fff'], red: ['#e53935', '#fff'], green: ['#159447', '#fff'], orange: ['#f97316', '#fff'], pink: ['#ec4899', '#fff'], cyan: ['#06b6d4', '#182637'], yellow: ['#facc15', '#302b19'] };
+  let opening = 0, enabling = 0, countdown = 0;
+  let changedAt = null, clicks = 0;
+  function cancelTimers() { clearTimeout(opening); clearTimeout(enabling); clearInterval(countdown); opening = enabling = countdown = 0; }
+  function reset() {
+    cancelTimers(); changedAt = null; clicks = 0;
+    ui.bookingButton.className = '';
+    ui.bookingButton.style.setProperty('--waiting-color', ui.waitingChoice.value === 'pale' ? 'rgb(206,232,245)' : 'rgb(243,244,248)');
+    ui.bookingButton.disabled = true;
+    ui.bookingButton.textContent = '예매 시작 전';
+    ui.state.textContent = '대기 중'; ui.count.textContent = '0회'; ui.elapsed.textContent = '—';
+    ui.startTimer.disabled = false; ui.startTimer.textContent = '5초 타이머 시작';
+    for (const el of [ui.waitingChoice, ui.colorChoice, ui.smooth, ui.delayEnabled]) el.disabled = false;
+  }
+  function enable() { ui.bookingButton.disabled = false; ui.state.textContent = '색상 변경 · 클릭 가능'; }
+  ui.startTimer.addEventListener('click', () => {
+    if (ui.startTimer.disabled) return;
+    ui.startTimer.disabled = true;
+    for (const el of [ui.waitingChoice, ui.colorChoice, ui.smooth, ui.delayEnabled]) el.disabled = true;
+    const [background, text] = colors[ui.colorChoice.value];
+    ui.bookingButton.style.setProperty('--active-color', background);
+    ui.bookingButton.style.setProperty('--active-text', text);
+    ui.bookingButton.classList.toggle('smooth', ui.smooth.checked);
+    const deadline = performance.now() + 5000;
+    ui.state.textContent = '5초 대기 중'; ui.startTimer.textContent = '5초 남음';
+    countdown = setInterval(() => { ui.startTimer.textContent = Math.max(0, Math.ceil((deadline - performance.now()) / 1000)) + '초 남음'; }, 100);
+    opening = setTimeout(() => {
+      clearInterval(countdown); countdown = 0;
+      changedAt = performance.now();
+      ui.bookingButton.classList.add('open'); ui.bookingButton.textContent = '예매하기';
+      ui.startTimer.textContent = '타이머 완료';
+      if (ui.delayEnabled.checked) { ui.state.textContent = '색상 변경 · 활성화 1초 대기'; enabling = setTimeout(enable, 1000); }
+      else enable();
+    }, 5000);
+  });
+  ui.bookingButton.addEventListener('click', () => {
+    clicks += 1;
+    ui.count.textContent = clicks + '회';
+    if (clicks === 1 && changedAt !== null) ui.elapsed.textContent = (performance.now() - changedAt).toFixed(1) + ' ms';
+    ui.state.textContent = clicks === 1 ? '첫 클릭 확인' : '추가 클릭 발생';
+  });
+  ui.resetDemo.addEventListener('click', reset);
+  ui.colorChoice.addEventListener('change', reset);
+  ui.waitingChoice.addEventListener('change', reset);
+  reset();
+})();
+</script>
+</body>
+</html>

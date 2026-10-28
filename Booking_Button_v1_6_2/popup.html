@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<title>예매 버튼 한 번 클릭</title>
+<style>
+  body { width: 290px; margin: 0; padding: 22px; font: 14px/1.6 system-ui, sans-serif; color: #202337; }
+  h1 { font-size: 18px; margin: 0 0 8px; }
+  p { color: #646879; margin: 0 0 16px; }
+  button { width: 100%; border: 0; border-radius: 10px; padding: 12px; background: #494dff; color: white; font: inherit; font-weight: 700; cursor: pointer; }
+  button:disabled { opacity: .6; cursor: wait; }
+  #error { color: #a62837; margin-top: 12px; font-size: 12px; }
+  #frames { margin-top: 14px; padding-top: 12px; border-top: 1px solid #e3e5f1; font-size: 12px; }
+  #frames p { margin: 0 0 8px; font-size: 12px; }
+  #frames button { background: #eef0fa; color: #252947; padding: 9px; }
+  [hidden] { display: none !important; }
+</style>
+<h1>예매 버튼 한 번 클릭</h1>
+<p>아이콘을 누르면 이 페이지에 패널이 열립니다. 기본 DOM 모드는 비활성 버튼이 활성화되면 색상 대기 없이 한 번 클릭합니다. 패널에서 기존 색상 모드도 선택할 수 있습니다.</p>
+<button id="open" disabled>여는 중…</button>
+<div id="error" role="status"></div>
+<div id="frames" hidden>
+  <p id="framesText"></p>
+  <button id="grant">프레임 접근 허용</button>
+</div>
+<script src="popup.js"></script>
+</html>

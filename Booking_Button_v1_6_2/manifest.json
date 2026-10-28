@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "예매 버튼 한 번 클릭",
+  "version": "1.6.2",
+  "description": "기본 DOM 모드에서 비활성 버튼의 활성 전환을 감지해 한 번 클릭합니다. 기존 색상 변화 감시와 이미지·프레임 버튼도 지원합니다.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "예매 버튼 감시 열기",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
+  }
+}
