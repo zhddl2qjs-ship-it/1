@@ -1,0 +1,214 @@
+#!/usr/bin/env bash
+set -euo pipefail
+dest="${1:-$HOME/Downloads/nol-captcha-reader-1.0.0}"
+if [ -e "$dest" ]; then echo "이미 존재하는 폴더입니다: $dest" >&2; exit 1; fi
+for cmd in curl tar gzip base64; do command -v "$cmd" >/dev/null || { echo "$cmd 명령이 필요합니다." >&2; exit 1; }; done
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+mkdir -p "$tmp/app/vendor/licenses"
+cat > "$tmp/source.b64" <<'NOL_SOURCE'
+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
+NOL_SOURCE
+if [ "$(uname -s)" = Darwin ]; then
+  base64 -D < "$tmp/source.b64" > "$tmp/source.tgz"
+else
+  base64 --decode < "$tmp/source.b64" > "$tmp/source.tgz"
+fi
+tar -xzf "$tmp/source.tgz" -C "$tmp/app"
+base=https://cdn.jsdelivr.net/npm
+get() { curl --fail --silent --show-error --location --retry 2 "$1" -o "$2"; }
+echo "고정 버전 OCR 엔진과 모델을 내려받습니다. 약 16 MB입니다."
+for file in tesseract.min.js worker.min.js tesseract.min.js.LICENSE.txt worker.min.js.LICENSE.txt; do
+  get "$base/tesseract.js@5.1.1/dist/$file" "$tmp/app/vendor/$file"
+done
+for flavor in lstm simd-lstm; do
+  for ext in wasm wasm.js; do
+    file="tesseract-core-$flavor.$ext"
+    get "$base/tesseract.js-core@5.1.1/$file" "$tmp/app/vendor/$file"
+  done
+done
+get "$base/@tesseract.js-data/eng@1.0.0/4.0.0_best_int/eng.traineddata.gz" "$tmp/app/vendor/eng.traineddata.gz"
+get "$base/tesseract.js@5.1.1/LICENSE.md" "$tmp/app/vendor/licenses/tesseract-js-LICENSE.md"
+get "$base/tesseract.js-core@5.1.1/LICENSE" "$tmp/app/vendor/licenses/tesseract-core-LICENSE"
+cp "$tmp/app/vendor/licenses/tesseract-core-LICENSE" "$tmp/app/vendor/licenses/traineddata-LICENSE"
+cat > "$tmp/app/vendor/SHA256SUMS" <<'NOL_HASHES'
+a8e29918d098b2b06e1012bdaeffb4aec0445c5d5654709023e0bd1f442a80e8  tesseract.min.js
+aca1229639fc9907d86f96e825955a2b7c5716d17f3bc3acd71f9c7ab66181fc  worker.min.js
+cdf963ced7d25a0f98901a547647b4d6e2dbe0197fd78c87a059a87b0e542fe2  tesseract.min.js.LICENSE.txt
+45f54171aeaa1d10c0c1a66f374b7bba1f02472b1487fbe892eec04f840002ac  worker.min.js.LICENSE.txt
+5db58ea4d1bd4256be81e8ae3b4fa226c4625dfba1850b1b3308dbf3700e9929  tesseract-core-lstm.wasm
+8f04aa0cc81e7bde33f80e92fa01a7a665f0b4884d098acf5de9c7104a11dfaa  tesseract-core-lstm.wasm.js
+66b601224a0c4a8977bc9d92dd39841189f9ca22cc4122fcd7208cdb0961eeef  tesseract-core-simd-lstm.wasm
+ce20eda9533cbed1e6c2b4276fbae1e0adc61b6754b5513084be601787b457cf  tesseract-core-simd-lstm.wasm.js
+45b4cb346724ac1774f1c36f42f182b887bcdb28ebe63e6fff90ac41f3fcff91  eng.traineddata.gz
+NOL_HASHES
+if command -v shasum >/dev/null; then
+  (cd "$tmp/app/vendor" && shasum -a 256 -c SHA256SUMS)
+else
+  (cd "$tmp/app/vendor" && sha256sum -c SHA256SUMS)
+fi
+cat > "$tmp/app/README.txt" <<'NOL_README'
+NOL 캡차 자동 입력 1.0.0 / Chrome·Edge 116 이상
+chrome://extensions 또는 edge://extensions → 개발자 모드 → 압축해제된 확장 프로그램 로드 → 이 폴더 선택.
+설치 후 예매 페이지를 새로고침하세요. 기본값은 자동 인식·입력·클릭 켜짐입니다.
+대상: https://tickets.interpark.com/*
+입력창: input[class*="ModalCaptchaText_captchaInput"]
+이미지: 같은 ModalLayout_innerWrap 안의 ModalCaptchaText_captchaImage img.
+입력완료 버튼은 같은 모달 안에서 활성화된 뒤 한 번만 클릭합니다.
+이미 입력한 값과 인식 중 사용자 편집을 덮어쓰지 않습니다.
+잘못 읽었다면 직접 수정하거나 새 문자를 불러오세요. 같은 이미지 재시도는 입력을 비우고 확장프로그램 팝업에서 선택하세요.
+OCR 엔진·모델은 로컬 실행되며 외부 OCR 서비스로 이미지를 보내지 않습니다. 설치할 때만 CDN에서 고정 버전 파일을 내려받습니다.
+실제 OCR+React 입력 테스트 3개와 제어 테스트 12개 통과. 테스트 환경 관리 정책 때문에 실제 확장프로그램 설치 및 실제 예매 서버 인증은 미검증입니다.
+Tesseract.js 5.1.1 / Tesseract.js-core 5.1.1 / @tesseract.js-data/eng 1.0.0. 라이선스는 vendor/licenses에 있습니다.
+설치 폴더를 삭제·이동하면 확장프로그램이 작동하지 않습니다.
+NOL_README
+mkdir -p "$(dirname "$dest")"
+mv "$tmp/app" "$dest"
+printf '\n준비 완료: %s\nChrome: chrome://extensions\nEdge: edge://extensions\n개발자 모드 → 압축해제된 확장 프로그램 로드 → 위 폴더 선택\n' "$dest"
+if [ "${NOL_NO_OPEN:-0}" != 1 ] && [ "$(uname -s)" = Darwin ]; then
+  open -a 'Google Chrome' 'chrome://extensions' 2>/dev/null || true
+fi
