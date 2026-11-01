@@ -162,33 +162,84 @@
     return { width, height, data: output, foreground, background };
   }
 
-  async function readPixels(dataUrl) {
+  function imageBlob(dataUrl) {
     if (typeof dataUrl !== 'string' || dataUrl.length > 3000000 ||
         !/^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(dataUrl)) {
       throw new Error('지원하지 않는 이미지 데이터입니다.');
     }
-    const image = new Image();
-    image.src = dataUrl;
-    await bounded(image.decode(), 10000, '이미지를 읽는 시간이 초과되었습니다.');
-    if (!image.naturalWidth || image.naturalWidth > 2048 || image.naturalHeight > 1024) {
+    let decoded;
+    try {
+      decoded = atob(dataUrl.slice(dataUrl.indexOf(',') + 1));
+    } catch {
+      throw new Error('이미지의 Base64 데이터가 올바르지 않습니다.');
+    }
+    const bytes = Uint8Array.from(decoded, character => character.charCodeAt(0));
+    const begins = signature => signature.every((value, index) => bytes[index] === value);
+    let mime;
+    // The site's data URL says JPEG while the supplied bytes are PNG. Use the
+    // byte signature, not the declared MIME type, for the decoder's Blob.
+    if (begins([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) mime = 'image/png';
+    else if (begins([0xff, 0xd8, 0xff])) mime = 'image/jpeg';
+    else if (begins([0x47, 0x49, 0x46, 0x38]) && [0x37, 0x39].includes(bytes[4]) && bytes[5] === 0x61) mime = 'image/gif';
+    else if (begins([0x52, 0x49, 0x46, 0x46]) && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) mime = 'image/webp';
+    else throw new Error('지원하지 않거나 손상된 이미지 파일입니다.');
+    if (mime === 'image/png' && bytes.length >= 24) {
+      const header = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      checkDimensions(header.getUint32(16), header.getUint32(20));
+    }
+    return new Blob([bytes], { type: mime });
+  }
+
+  function checkDimensions(width, height) {
+    if (!width || !height || width > 2048 || height > 1024) {
       throw new Error('지원하지 않는 이미지 크기입니다.');
     }
+  }
+
+  function makeCanvas(width, height) {
+    if (typeof OffscreenCanvas === 'function') return new OffscreenCanvas(width, height);
     const canvas = document.createElement('canvas');
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
-    const context = canvas.getContext('2d', { willReadFrequently: true });
-    context.drawImage(image, 0, 0);
-    return context.getImageData(0, 0, canvas.width, canvas.height);
+    canvas.width = width;
+    canvas.height = height;
+    return canvas;
+  }
+
+  async function readPixels(dataUrl) {
+    const blob = imageBlob(dataUrl);
+    if (typeof createImageBitmap !== 'function') {
+      throw new Error('이 브라우저는 이미지 디코더를 지원하지 않습니다. Chrome을 업데이트해주세요.');
+    }
+    let bitmap;
+    let abandoned = false;
+    try {
+      // Image.decode() can wait for an HTML document's rendering lifecycle.
+      // A Blob-backed bitmap is decoded independently of any visible frame.
+      const decoding = createImageBitmap(blob).then(result => {
+        if (abandoned) {
+          result.close();
+          throw new Error('이미지 디코딩이 취소되었습니다.');
+        }
+        return result;
+      });
+      bitmap = await bounded(decoding, 10000, '이미지 비트맵을 읽는 시간이 초과되었습니다.');
+      checkDimensions(bitmap.width, bitmap.height);
+      const canvas = makeCanvas(bitmap.width, bitmap.height);
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      if (!context) throw new Error('이미지 처리용 캔버스를 만들 수 없습니다.');
+      context.drawImage(bitmap, 0, 0);
+      return context.getImageData(0, 0, bitmap.width, bitmap.height);
+    } catch (error) {
+      abandoned = true;
+      throw new Error(error?.message || '이미지를 디코딩하지 못했습니다.');
+    } finally {
+      bitmap?.close();
+    }
   }
 
   function canvasFor(pixels) {
-    const original = document.createElement('canvas');
-    original.width = pixels.width;
-    original.height = pixels.height;
+    const original = makeCanvas(pixels.width, pixels.height);
     original.getContext('2d').putImageData(new ImageData(pixels.data, pixels.width, pixels.height), 0, 0);
-    const enlarged = document.createElement('canvas');
-    enlarged.width = pixels.width * 4;
-    enlarged.height = pixels.height * 4;
+    const enlarged = makeCanvas(pixels.width * 4, pixels.height * 4);
     const context = enlarged.getContext('2d');
     context.imageSmoothingEnabled = false;
     context.drawImage(original, 0, 0, enlarged.width, enlarged.height);

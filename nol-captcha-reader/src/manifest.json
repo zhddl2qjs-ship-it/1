@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "NOL 캡차 자동 입력",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "NOL 예매 캡차를 기기 안에서 인식하고 입력완료 버튼을 누릅니다.",
   "minimum_chrome_version": "116",
   "permissions": ["storage", "offscreen"],
