@@ -13,7 +13,12 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
           timer = setTimeout(() => reject(new Error('문자 인식 시간 초과')), 55000);
         })
       ]);
-      return {ok: true, text: result.text, confidence: result.confidence};
+      return {
+        ok: true, text: result.text, confidence: result.confidence,
+        submitSafe: result.submitSafe === true,
+        reason: typeof result.reason === 'string' ? result.reason : '',
+        agreement: Number(result.agreement) || 0
+      };
     } catch (error) {
       await window.CaptchaOCR.terminate().catch(() => {});
       return {ok: false, error: error.message || String(error)};

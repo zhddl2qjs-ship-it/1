@@ -1,6 +1,6 @@
 'use strict';
 
-const DEFAULTS = {enabled: true, autoSubmit: true};
+const DEFAULTS = {enabled: true, autoSubmit: true, autoRetry: true, maxRetries: 5};
 let creatingOffscreen;
 let ocrQueue = Promise.resolve();
 
@@ -75,7 +75,12 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
           }), 58000);
           if (!result?.ok) throw new Error(result?.error || '문자 인식 결과가 없습니다.');
           if (!/^[A-Z]{6}$/.test(result.text)) throw new Error('6자리 영문자를 정확히 읽지 못했습니다. 직접 입력하거나 새 문자를 불러오세요.');
-          return {ok: true, text: result.text, confidence: result.confidence};
+          return {
+            ok: true, text: result.text, confidence: result.confidence,
+            submitSafe: result.submitSafe === true,
+            reason: typeof result.reason === 'string' ? result.reason.slice(0, 300) : '',
+            agreement: Number(result.agreement) || 0
+          };
         } catch (error) {
           // Closing the document also cleans up workers whose initialization failed.
           await chrome.offscreen.closeDocument().catch(() => {});

@@ -8,10 +8,14 @@ function render(status) {
 }
 
 async function refresh() {
-  const settings = await chrome.storage.local.get({enabled: true, autoSubmit: true});
+  const settings = await chrome.storage.local.get({enabled: true, autoSubmit: true, autoRetry: true, maxRetries: 5});
   $('enabled').checked = settings.enabled;
   $('autoSubmit').checked = settings.autoSubmit;
   $('autoSubmit').disabled = !settings.enabled;
+  $('autoRetry').checked = settings.autoRetry;
+  $('autoRetry').disabled = !settings.enabled;
+  $('maxRetries').value = settings.maxRetries;
+  $('maxRetries').disabled = !settings.enabled || !settings.autoRetry;
   const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
   tabId = tab?.id;
   try {
@@ -24,12 +28,18 @@ async function refresh() {
   }
 }
 
-for (const key of ['enabled', 'autoSubmit']) {
+for (const key of ['enabled', 'autoSubmit', 'autoRetry']) {
   $(key).addEventListener('change', async () => {
     await chrome.storage.local.set({[key]: $(key).checked});
     await refresh();
   });
 }
+
+$('maxRetries').addEventListener('change', async () => {
+  const value = Number($('maxRetries').value);
+  await chrome.storage.local.set({maxRetries: Number.isFinite(value) ? Math.max(0, Math.min(20, Math.floor(value))) : 5});
+  await refresh();
+});
 
 $('retry').addEventListener('click', async () => {
   $('retry').disabled = true;
